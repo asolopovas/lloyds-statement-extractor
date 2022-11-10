@@ -4,7 +4,7 @@ import PyPDF2
 from win32com import client
 import re
 
-yr = "2021"
+yr = "2020"
 pwd = os.getcwd()
 excel = client.Dispatch("Excel.Application")
 pdfFolder = os.path.join(pwd, yr)
@@ -46,39 +46,3 @@ if os.path.exists(os.path.join(pwd, "statement - "+yr+".xlsx")):
     os.remove(os.path.join(pwd, "statement - "+yr+".xlsx"))
 newExcel.ActiveWorkbook.SaveAs(os.path.join(pwd, "statement - "+yr+".xlsx"))
 
-
-# 17 DECEMBER 20 DECEMBER WWW.JUST-EAT.CO.UK 02067 362061 12.93
-# print(data)
-# print("date: ", str(date), "desc: ", str(desc), "amount: ", str(amount))
-# sheets = excel.Workbooks.Open(os.path.join(pwd, "jan state.xlsx"))
-# def findRowThatContainsString(text, string):
-#     for row in text.splitlines():
-#         if string in row:
-#           print(row[row.find(string):])
-# def pdfsContainString(pdf_path, string):
-#     pdfFileObj = open(pdf_path, 'rb')
-#     pdfReader = PyPDF2.PdfFileReader(pdfFileObj)
-#     for i in range(0, pdfReader.numPages):
-#         pageObj = pdfReader.getPage(i)
-#         if string in pageObj.extractText():
-#             return pageObj.extractText()
-#     return False
-# def check_folder(folder_path, string):
-#     for file in os.listdir(folder_path):
-#         if check_pdf(os.path.join(folder_path, file), string):
-#             return True
-#         return False
-
-# # get the first sheet
-# sheet = sheets.Worksheets(1)
-# # loop through the rows
-# for row in range(2, sheet.UsedRange.Rows.Count + 1):
-#     # get the value of the cell
-#     date=sheet.Cells(row, 1).Value
-#     # convert date to string
-#     description =sheet.Cells(row, 2).Value
-#     amount = sheet.Cells(row, 3).Value
-#     string = pdfsContainString(os.path.join(pwd, "pdf"), description)
-#     # row = findRowThatContainsString(string, description)
-#     # if not string:
-#     #     print ("note found - date: " + str(date) + "; description: " + str(description) + "; amount: " + str(amount))
