@@ -1,12 +1,20 @@
-from hashlib import new
 import os
-import PyPDF2
+import sys
+from PyPDF2 import PdfReader
 from win32com import client
 import re
-import json
 
-yr = "2020"
-pwd = os.getcwd()
+yr = "2024"
+
+if len(sys.argv) != 2:
+    print("Usage: extract-statement.py <PDF filename>")
+    sys.exit(1)
+
+pdf_path = sys.argv[1]
+
+if not os.path.exists(pdf_path):
+    print(f"File not found: {pdf_path}")
+    sys.exit(1)
 
 spreadSheet = client.Dispatch("Excel.Application")
 spreadSheet.Workbooks.Add()
@@ -16,50 +24,42 @@ spreadSheet.ActiveSheet.Cells(1, 3).Value = "Amount"
 
 stData = ""
 
-for pdf in os.listdir(pwd):
-    if pdf.endswith(".xlsx"):
-        continue
-    pdfFile = open(os.path.join(pwd, pdf), "rb")
-    try:
-        pdfReader = PyPDF2.PdfFileReader(pdfFile)
-        for pageNum in range(pdfReader.numPages):
-            pageObj = pdfReader.getPage(pageNum)
-            stData += pageObj.extractText()
-    except:
-        print ("Error in reading file: " + pdf)
-        exit(0)
+try:
+    reader = PdfReader(pdf_path)
+    for page in reader.pages:
+        stData += page.extract_text()
+except Exception as e:
+    print(f"Error in reading file: {pdf_path}\n{e}")
+    spreadSheet.Quit()
+    sys.exit(1)
+
 stData = stData.replace("Customer Services: 0345 606 2174", "")
 statementData = re.findall(r"\d{2}\s\w*\s\d{2}\s.*", stData)
 
+# Process extracted data into Excel
+for i, row in enumerate(statementData):
+    date_match = re.findall(r"\d{2}\s[a-zA-Z]{3,9}", row)
+    desc_match = re.findall(r"\d{2}\s\w*\s\d{2}\s\w*\s(.*(?=\s+\d+\.*))", row)
+    amount_match = re.findall(r"(\d+,\d{1,3}\.\d{1,2}|\d+\.\d{1,2})", row)
 
-# map list items values
-for i in range(len(statementData)):
-    row = statementData[i]
-    # save each row to a file
-    date = re.findall(r"\d{2}\s[a-zA-Z]{3,9}", row)[0] + " " + yr
-    desc = re.findall(r"\d{2}\s\w*\s\d{2}\s\w*\s(.*(?=\s+\d+\.*))", row)
-    amount = re.findall(r"(\d+,\d{1,3}\.\d{1,2}|\d+\.\d{1,2})", row)[0]
+    date = f"{date_match[0]} {yr}" if date_match else ""
+    desc = desc_match[0] if desc_match else ""
+    amount = amount_match[0] if amount_match else ""
 
     cr = re.search(r"CR$", row)
-    if cr != None:
+    if cr:
         amount = "-" + amount
 
-    spreadSheet.Cells(i+2, 1).Value = date
-    if desc:
-        spreadSheet.Cells(i+2, 2).Value = desc[0]
+    spreadSheet.Cells(i + 2, 1).Value = date
+    spreadSheet.Cells(i + 2, 2).Value = desc
+    spreadSheet.Cells(i + 2, 3).Value = amount
 
-    if amount:
-        spreadSheet.Cells(i+2, 3).Value = amount
-
-
-# save excel sheet
-if os.path.exists(os.path.join(pwd, "statement - "+yr+".xlsx")):
-    os.remove(os.path.join(pwd, "statement - "+yr+".xlsx"))
+excel_filename = f"statement - {yr}.xlsx"
+if os.path.exists(excel_filename):
+    os.remove(excel_filename)
 
 try:
-    spreadSheet.ActiveWorkbook.SaveAs(
-        os.path.join(pwd, "statement - "+yr+".xlsx"))
+    spreadSheet.ActiveWorkbook.SaveAs(os.path.join(os.getcwd(), excel_filename))
     spreadSheet.ActiveWorkbook.Close()
-    spreadSheet.Quit()
-except:
+finally:
     spreadSheet.Quit()
